@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Gestión de Clientes</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 font-sans p-6">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+
+        <h1 class="text-2xl font-bold mb-6 text-slate-800 border-b pb-2">
+            Panel de Control: CRUD Clientes
+        </h1>
+
+
+        <!-- FORMULARIO -->
+
+        <div class="mb-8 bg-slate-50 p-4 rounded border">
+
+            <h2 id="form-title"
+                class="text-lg font-semibold mb-3 text-slate-700">
+                Agregar Cliente (POST)
+            </h2>
+
+            <form id="cliente-form"
+                  class="flex flex-col sm:flex-row gap-3">
+
+                <input type="hidden" id="cliente-id">
+
+                <input
+                    type="text"
+                    id="nombre"
+                    placeholder="Nombre completo"
+                    required
+                    class="flex-1 p-2 border border-gray-300 rounded
+                    focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Correo electrónico"
+                    required
+                    class="flex-1 p-2 border border-gray-300 rounded
+                    focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+
+                <button
+                    type="submit"
+                    id="btn-submit"
+                    class="bg-blue-600 hover:bg-blue-700
+                    text-white font-medium px-4 py-2 rounded">
+
+                    Guardar
+
+                </button>
+
+                <button
+                    type="button"
+                    id="btn-cancel"
+                    onclick="resetForm()"
+                    class="hidden bg-gray-500 hover:bg-gray-600
+                    text-white px-4 py-2 rounded">
+
+                    Cancelar
+
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <!-- LISTADO -->
+
+        <div>
+
+            <div class="flex justify-between items-center mb-3">
+
+                <h2 class="text-lg font-semibold text-slate-700">
+                    Listado de Clientes (GET)
+                </h2>
+
+                <button
+                    onclick="cargarClientes()"
+                    class="text-sm bg-slate-200 hover:bg-slate-300
+                    text-slate-700 px-3 py-1 rounded">
+
+                    🔄 Recargar
+
+                </button>
+
+            </div>
+
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full text-left border-collapse border border-gray-200">
+
+                    <thead>
+
+                        <tr class="bg-slate-200 text-slate-700">
+
+                            <th class="p-3 border-b">
+                                ID
+                            </th>
+
+                            <th class="p-3 border-b">
+                                Nombre
+                            </th>
+
+                            <th class="p-3 border-b">
+                                Email
+                            </th>
+
+                            <th class="p-3 border-b text-center">
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="tabla-clientes">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <!-- BOTÓN CONTACTO -->
+
+        <div class="mt-6">
+
+            <a
+                href="/contacto"
+                class="bg-green-600 hover:bg-green-700
+                text-white px-4 py-2 rounded inline-block">
+
+                Ir a Contacto ➡
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        const API_URL = '/api/clientes';
+
+
+        // GET
+        async function cargarClientes() {
+
+            try {
+
+                const res = await fetch(API_URL);
+
+                const clientes = await res.json();
+
+                const tbody =
+                    document.getElementById('tabla-clientes');
+
+                tbody.innerHTML = '';
+
+
+                clientes.forEach(cliente => {
+
+                    const fila = document.createElement('tr');
+
+                    fila.className =
+                        'hover:bg-slate-50 border-b';
+
+
+                    fila.innerHTML = `
+
+                        <td class="p-3 font-mono">
+                            ${cliente.id}
+                        </td>
+
+                        <td class="p-3">
+                            ${cliente.nombre}
+                        </td>
+
+                        <td class="p-3">
+                            ${cliente.email}
+                        </td>
+
+                        <td class="p-3 text-center">
+
+                            <button
+                                class="editar bg-amber-500 hover:bg-amber-600
+                                text-white text-xs px-2 py-1 rounded">
+
+                                PUT (Editar)
+
+                            </button>
+
+                            <button
+                                class="eliminar bg-red-500 hover:bg-red-600
+                                text-white text-xs px-2 py-1 rounded">
+
+                                DELETE (Eliminar)
+
+                            </button>
+
+                        </td>
+                    `;
+
+
+                    // Botón editar
+                    fila.querySelector('.editar')
+                        .addEventListener('click', () => {
+
+                            prepararEdicion(
+                                cliente.id,
+                                cliente.nombre,
+                                cliente.email
+                            );
+
+                        });
+
+
+                    // Botón eliminar
+                    fila.querySelector('.eliminar')
+                        .addEventListener('click', () => {
+
+                            eliminarCliente(cliente.id);
+
+                        });
+
+
+                    tbody.appendChild(fila);
+
+                });
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Error al obtener clientes:",
+                    error
+                );
+
+            }
+
+        }
+
+
+
+        // POST o PUT
+
+        document
+            .getElementById('cliente-form')
+            .addEventListener('submit', async (e) => {
+
+                e.preventDefault();
+
+
+                const id =
+                    document.getElementById('cliente-id').value;
+
+                const nombre =
+                    document.getElementById('nombre').value;
+
+                const email =
+                    document.getElementById('email').value;
+
+
+                try {
+
+                    if (id) {
+
+                        // PUT
+
+                        await fetch(`${API_URL}/${id}`, {
+
+                            method: 'PUT',
+
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+
+                            body: JSON.stringify({
+                                nombre: nombre,
+                                email: email
+                            })
+
+                        });
+
+                    }
+
+                    else {
+
+                        // POST
+
+                        await fetch(API_URL, {
+
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+
+                            body: JSON.stringify({
+                                nombre: nombre,
+                                email: email
+                            })
+
+                        });
+
+                    }
+
+
+                    resetForm();
+
+                    await cargarClientes();
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Error al guardar cliente:",
+                        error
+                    );
+
+                }
+
+            });
+
+
+
+        // DELETE
+
+        async function eliminarCliente(id) {
+
+            const confirmar =
+                confirm(`¿Eliminar cliente con ID ${id}?`);
+
+
+            if (confirmar) {
+
+                await fetch(`${API_URL}/${id}`, {
+
+                    method: 'DELETE'
+
+                });
+
+
+                await cargarClientes();
+
+            }
+
+        }
+
+
+
+        // Preparar edición
+
+        function prepararEdicion(id, nombre, email) {
+
+            document.getElementById('form-title')
+                .innerText = 'Actualizar Cliente (PUT)';
+
+
+            document.getElementById('cliente-id')
+                .value = id;
+
+
+            document.getElementById('nombre')
+                .value = nombre;
+
+
+            document.getElementById('email')
+                .value = email;
+
+
+            document.getElementById('btn-submit')
+                .innerText = 'Actualizar';
+
+
+            document.getElementById('btn-submit')
+                .classList.replace(
+                    'bg-blue-600',
+                    'bg-amber-600'
+                );
+
+
+            document.getElementById('btn-cancel')
+                .classList.remove('hidden');
+
+        }
+
+
+
+        // Limpiar formulario
+
+        function resetForm() {
+
+            document.getElementById('form-title')
+                .innerText = 'Agregar Cliente (POST)';
+
+
+            document.getElementById('cliente-id')
+                .value = '';
+
+
+            document.getElementById('cliente-form')
+                .reset();
+
+
+            document.getElementById('btn-submit')
+                .innerText = 'Guardar';
+
+
+            document.getElementById('btn-submit')
+                .classList.replace(
+                    'bg-amber-600',
+                    'bg-blue-600'
+                );
+
+
+            document.getElementById('btn-cancel')
+                .classList.add('hidden');
+
+        }
+
+
+        // Cargar automáticamente
+        cargarClientes();
+
+    </script>
+
+</body>
+
+</html>
